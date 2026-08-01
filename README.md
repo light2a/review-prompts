@@ -1,85 +1,137 @@
-# review-prompts
+<p align="center">
+  <img src="assets/banner.svg" alt="Universal Review Prompt" width="100%">
+</p>
 
-Bộ prompt chuẩn hóa để **phân tích phản biện (critical review)** dự án phần mềm bằng AI coding assistant — tự thích nghi với repo chỉ có tài liệu (BRD/PRD), chỉ có code, hoặc cả hai. Đã được kiểm chứng bằng chạy thử thật (xem Changelog).
+<p align="center">
+  <b>Bảo AI review dự án của bạn — và bắt nó chứng minh từng nhận định.</b><br>
+  Tự thích nghi với repo chỉ có tài liệu, chỉ có code, hoặc cả hai.
+</p>
 
-## Cấu trúc
+<p align="center">
+  <a href="#bắt-đầu-trong-30-giây">Bắt đầu</a> ·
+  <a href="#nó-tạo-ra-cái-gì">Kết quả mẫu</a> ·
+  <a href="#cách-nó-hoạt-động">Cách hoạt động</a> ·
+  <a href="#vì-sao-thiết-kế-như-vậy">Thiết kế</a>
+</p>
 
-```text
-prompts/
-└── universal-harness-review.md   # prompt thuần — dán vào Claude, ChatGPT, hoặc AI assistant bất kỳ
-skills/
-└── universal-review/
-    └── SKILL.md                  # bản đóng gói Claude Code skill — gọi /universal-review ở mọi dự án
-```
+---
 
-## Usage
+## Vấn đề
 
-### Với Claude Code (khuyến nghị — cài 1 lần, dùng mọi dự án)
+Bảo AI "review giúp tôi dự án này", bạn thường nhận lại: lời khen chung chung, nhận định không có dẫn chứng, hoặc tệ hơn — kiến trúc **được bịa ra** cho vừa cái khuôn báo cáo.
 
-```bash
-mkdir -p ~/.claude/skills/universal-review && cp skills/universal-review/SKILL.md ~/.claude/skills/universal-review/SKILL.md
-```
+Prompt này chặn cả ba: bắt kiểm tra cái gì thực sự tồn tại trước, bắt mọi phát hiện phải dẫn được nguồn, và bắt tự phản biện ngược trước khi kết luận.
 
-Mở phiên Claude Code mới (skill listing nạp lúc khởi động), rồi ở bất kỳ dự án nào:
+## Bắt đầu trong 30 giây
 
-```text
-/universal-review
-```
-
-### Với AI assistant khác
-
-Dán toàn bộ nội dung `prompts/universal-harness-review.md` vào đầu hội thoại, trong thư mục dự án cần review.
-
-### Kết quả
-
-Bộ báo cáo Markdown trong `analysis/` (hoặc `analysis-<ngày>/` nếu đã có review cũ): executive summary, artifact inventory, methodology, findings (format chuẩn 6 phần có Counter-argument), recommendations P0/P1/P2, cùng các file điều kiện (architecture/security/database/CI-CD/harness-fit/traceability) chỉ khi có artifact tương ứng.
-
-## Cập nhật & push lên GitHub
-
-Repo này nằm ở `~/Downloads/review-prompts`, remote `origin` trỏ tới `https://github.com/light2a/review-prompts.git`, nhánh `main` đã set upstream.
-
-Quy trình cập nhật sau khi sửa `prompts/` hoặc `skills/`:
-
-```bash
-cd ~/Downloads/review-prompts
-git status                     # xem file đã đổi
-git add -A
-git commit -m "mô tả thay đổi"
-git push                       # đã set-upstream, không cần -u origin main nữa
-```
-
-Sau khi sửa `skills/universal-review/SKILL.md`, đồng bộ lại bản đã cài (bắt buộc — Claude Code đọc từ `~/.claude/skills/`, không đọc trực tiếp từ repo này):
-
-```bash
-cp skills/universal-review/SKILL.md ~/.claude/skills/universal-review/SKILL.md
-```
-
-Mở phiên Claude Code mới để skill listing nạp lại bản vừa cập nhật.
-
-Lần đầu clone repo này trên máy khác:
+**Claude Code** — cài một lần, dùng ở mọi dự án:
 
 ```bash
 git clone https://github.com/light2a/review-prompts.git
-cd review-prompts
 mkdir -p ~/.claude/skills/universal-review
+cp review-prompts/skills/universal-review/SKILL.md ~/.claude/skills/universal-review/SKILL.md
+```
+
+Mở phiên Claude Code mới, vào thư mục dự án bất kỳ và gõ:
+
+```
+/universal-review
+```
+
+**AI khác (ChatGPT, Gemini, Cursor…):** dán nội dung [`prompts/universal-harness-review.md`](prompts/universal-harness-review.md) vào đầu hội thoại.
+
+## Nó tạo ra cái gì
+
+Một thư mục `analysis/` có cấu trúc, chỉ gồm những file mà dữ liệu thật cho phép viết:
+
+```
+analysis/
+├── 00-executive-summary.md      # điểm mạnh, rủi ro, readiness, bảng severity
+├── 01-artifact-inventory.md     # cái gì thực sự có trong repo
+├── 02-methodology-and-workflow.md
+├── 03-findings.md               # phần quan trọng nhất
+├── 04-recommendations.md        # P0 / P1 / P2 kèm effort & owner
+└── evidence/
+```
+
+Mỗi phát hiện theo một khuôn cố định — chú ý mục **Counter-argument**, thứ buộc AI tự cãi lại chính nó trước khi phán:
+
+> ## Finding: Ba capability Must không có chỗ dựa trong kit
+> **Severity:** High
+>
+> **Evidence** — `grep -rin "notification|queue|lifecycle" skills/` → 0 kết quả thuộc domain ứng dụng
+>
+> **Analysis** — Đây là phần khó nhất của dự án và cũng là nơi race condition sẽ xuất hiện…
+>
+> **Counter-argument** — Không toolkit quy trình nào phủ nổi domain cụ thể; điều này đúng với mọi kit tương tự.
+>
+> **Verdict** — ⚠️ Risk accepted nếu đội chủ động bù
+>
+> **Recommended Fix** — Viết 3 reference file domain trước khi vào Phase 1…
+
+## Cách nó hoạt động
+
+```mermaid
+flowchart TD
+    A["Bước 0 — Kiểm tra tiền đề<br/>ls thư mục, tìm artifact thật"] --> B{Có gì<br/>trong repo?}
+    B -->|Trống| STOP["DỪNG và hỏi người dùng<br/>(không tạo file nào)"]
+    B -->|Có| C["Bước 1 — Inventory<br/>liệt kê artifact thực tế"]
+    C --> D{Chọn mode}
+    D -->|Chỉ tài liệu| MA["Mode A<br/>yêu cầu · nhất quán · governance<br/>→ next-phase readiness"]
+    D -->|Code + tài liệu| MB["Mode B<br/>+ kiến trúc · bảo mật · vận hành<br/>→ production readiness"]
+    D -->|Chỉ code| MC["Mode C<br/>tái dựng kiến trúc · nợ kỹ thuật"]
+    MA --> E["Findings có Evidence<br/>+ Counter-argument"]
+    MB --> E
+    MC --> E
+    E --> F["Tự kiểm chứng<br/>grep đếm severity · ls kiểm tra path"]
+    F --> G["analysis/"]
+```
+
+| Mode | Khi nào | Thang đánh giá |
+|---|---|---|
+| **A** — Chỉ tài liệu | Chưa viết dòng code nào | Sẵn sàng cho phase kế tiếp |
+| **B** — Code + tài liệu | Có cả hai | Sẵn sàng production |
+| **C** — Chỉ code | Không có BRD/PRD | Sẵn sàng production |
+
+## Vì sao thiết kế như vậy
+
+Ba nguyên tắc lõi, mỗi cái sinh ra từ một lần thất bại thật:
+
+**1. Reality First.** Phiên bản đầu yêu cầu review code trên một repo trống và viện dẫn thư mục không tồn tại — AI làm theo sẽ bịa kiến trúc để có cái mà viết. v3 bắt kiểm tra tiền đề trước, có quy tắc dừng, và biết hỏi khi tài liệu nằm ngoài repo.
+
+**2. Evidence + Counter-argument.** Mọi phát hiện phải dẫn được `file:dòng` hoặc mã yêu cầu, và phải tự trả lời "thiết kế này có thể là lựa chọn có chủ đích không?" trước khi phán ❌.
+
+**3. Tự kiểm chứng bằng lệnh.** Trong lần chạy thử v2, chính bảng tổng hợp severity bị đếm sai và chỉ lộ ra nhờ `grep -c`. Nên v3 đưa bước đếm lại thành bắt buộc.
+
+## Cập nhật & push
+
+```bash
+cd review-prompts
+git add -A
+git commit -m "mô tả thay đổi"
+git push
+```
+
+Sau khi sửa `skills/universal-review/SKILL.md`, đồng bộ lại bản đã cài (Claude Code đọc từ `~/.claude/skills/`, không đọc trực tiếp repo này):
+
+```bash
 cp skills/universal-review/SKILL.md ~/.claude/skills/universal-review/SKILL.md
 ```
 
-## Thiết kế — vì sao prompt có hình dạng này
-
-Ba nguyên tắc lõi, mỗi cái sinh ra từ một lỗi thật của các phiên bản trước:
-
-1. **Reality First + Bước 0.** Phiên bản đầu (v1) yêu cầu review code trên một repo trống và viện dẫn thư mục không tồn tại — agent làm theo sẽ bịa ra kiến trúc để có cái viết. v3 bắt kiểm tra tiền đề trước, có halt rule, và có quy tắc hỏi người dùng khi tài liệu nằm ngoài repo.
-2. **Evidence First + Counter-argument.** Mọi finding phải dẫn chứng được (path/section/ID) và phải tự phản biện ("thiết kế này có thể có chủ đích không?") trước khi phán ❌.
-3. **Tự kiểm chứng bằng lệnh.** Trong lần chạy thử v2, chính bảng tổng hợp severity bị đếm sai và chỉ được phát hiện nhờ `grep -c` — nên v3 đưa bước này thành bắt buộc.
+Mở phiên Claude Code mới để nạp lại.
 
 ## Changelog
 
-- **v1** (dùng 1 lần, đã bỏ): hardcode domain dự án khác (payment/interview/AI, C#/.NET), yêu cầu đọc thư mục không tồn tại, ép 16 file cố định, không có tiền đề → bị phản biện toàn diện, kết quả tại review dự án gốc.
-- **v2** (bản tổng quát hóa đầu tiên): thêm Reality First, 3 mode A/B/C, file điều kiện, chống hallucination. Được **chạy thử thật** trên một repo Mode A có harness kit → lộ 9 friction: đè `analysis/` có sẵn; không nhận diện kit đã cài vào `.claude/` (chỉ biết bản clone); inventory thiếu 2 loại artifact; "production readiness" vô nghĩa ở mode docs-only; ép Finding vào file tổng hợp; 7 nhóm findings cứng không khớp Mode A; thiếu chỉ định ngôn ngữ; thiếu tự kiểm chứng số liệu; thiếu halt rule cho repo trống.
-- **v3** (hiện tại): sửa toàn bộ 9 friction + 4 lỗ hổng suy luận từ walkthrough Mode B/C; giữ nguyên phần đã chứng minh hoạt động tốt (finding format, mode, file điều kiện, chống hallucination, output cuối).
+- **v1** — hardcode domain của một dự án khác, yêu cầu đọc thư mục không tồn tại, ép đúng 16 file. Bỏ.
+- **v2** — thêm Reality First, 3 mode, file điều kiện, chống hallucination. **Chạy thử thật** trên một repo Mode A → lộ 9 điểm gãy: đè `analysis/` có sẵn, không nhận ra kit đã cài, "production readiness" vô nghĩa khi chưa có code, ép Finding vào file tổng hợp, thiếu quy tắc dừng…
+- **v3** — sửa cả 9 điểm gãy, giữ nguyên phần đã chứng minh hoạt động tốt.
 
 ## Ghi chú
 
-- "Harness" trong tên chỉ **phong cách review có kỷ luật bằng chứng** lấy cảm hứng từ [harness-skills](https://github.com/Unibean9/harness-skills); prompt không phụ thuộc repo đó — mục harness-fit chỉ chạy khi dự án thực sự có kit.
-- Prompt viết tiếng Việt; output tự khớp theo ngôn ngữ tài liệu của dự án được review.
+"Harness" trong tên chỉ **phong cách review có kỷ luật bằng chứng**, lấy cảm hứng từ [harness-skills](https://github.com/Unibean9/harness-skills). Prompt không phụ thuộc repo đó — phần đánh giá kit chỉ chạy khi dự án thực sự có kit.
+
+Prompt viết bằng tiếng Việt; báo cáo đầu ra tự khớp theo ngôn ngữ tài liệu của dự án được review.
+
+## License
+
+[MIT](LICENSE)
