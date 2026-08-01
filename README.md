@@ -34,6 +34,37 @@ Dán toàn bộ nội dung `prompts/universal-harness-review.md` vào đầu h�
 
 Bộ báo cáo Markdown trong `analysis/` (hoặc `analysis-<ngày>/` nếu đã có review cũ): executive summary, artifact inventory, methodology, findings (format chuẩn 6 phần có Counter-argument), recommendations P0/P1/P2, cùng các file điều kiện (architecture/security/database/CI-CD/harness-fit/traceability) chỉ khi có artifact tương ứng.
 
+## Cập nhật & push lên GitHub
+
+Repo này nằm ở `~/Downloads/review-prompts`, remote `origin` trỏ tới `https://github.com/light2a/review-prompts.git`, nhánh `main` đã set upstream.
+
+Quy trình cập nhật sau khi sửa `prompts/` hoặc `skills/`:
+
+```bash
+cd ~/Downloads/review-prompts
+git status                     # xem file đã đổi
+git add -A
+git commit -m "mô tả thay đổi"
+git push                       # đã set-upstream, không cần -u origin main nữa
+```
+
+Sau khi sửa `skills/universal-review/SKILL.md`, đồng bộ lại bản đã cài (bắt buộc — Claude Code đọc từ `~/.claude/skills/`, không đọc trực tiếp từ repo này):
+
+```bash
+cp skills/universal-review/SKILL.md ~/.claude/skills/universal-review/SKILL.md
+```
+
+Mở phiên Claude Code mới để skill listing nạp lại bản vừa cập nhật.
+
+Lần đầu clone repo này trên máy khác:
+
+```bash
+git clone https://github.com/light2a/review-prompts.git
+cd review-prompts
+mkdir -p ~/.claude/skills/universal-review
+cp skills/universal-review/SKILL.md ~/.claude/skills/universal-review/SKILL.md
+```
+
 ## Thiết kế — vì sao prompt có hình dạng này
 
 Ba nguyên tắc lõi, mỗi cái sinh ra từ một lỗi thật của các phiên bản trước:
